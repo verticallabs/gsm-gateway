@@ -28,7 +28,7 @@ import (
 )
 
 func main() {
-    port, portErr := serial.OpenPort(&serial.Config{"/dev/ttyUSB1", 115200})
+	port, portErr := serial.OpenPort(&serial.Config{Name: "/dev/ttyUSB1", Baud: 115200})
 	if portErr != nil {
 		panic(portErr)
 	}
