@@ -5,10 +5,14 @@ export VERSION=0.0.1
 db-run:
 	docker-compose up -d db
 db-create:
-	unset PGDATABASE && psql -h localhost --dbname="" -c "create database ${PGDATABASE};"
+	docker-compose exec -e "PGUSER=${PGUSER}" -e "PGPASSWORD=${PGPASSWORD}" db psql -h 127.0.0.1 --dbname="" -c "create database ${PGDATABASE};"
 db-drop:
-	PGDATABASE= psql -h localhost -c "drop database ${PGDATABASE};"
+	docker-compose exec -e "PGUSER=${PGUSER}" -e "PGPASSWORD=${PGPASSWORD}" db psql -h 127.0.0.1 --dbname="" -c "drop database ${PGDATABASE};"
 db:
-	psql -h localhost 
+	docker-compose exec \
+		-e "PGDATABASE=${PGDATABASE}" \
+		-e "PGUSER=${PGUSER}" \
+		-e "PGPASSWORD=${PGPASSWORD}" \
+		db psql
 dev:
 	go run main.go
