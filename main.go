@@ -23,6 +23,7 @@ type Message struct {
 	Handled   bool      `gorm:"index" json:"-"`
 	Time      time.Time `json:"time"`
 	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 var modem *gogsmmodem.Modem
@@ -150,7 +151,7 @@ func Serve(db *gorm.DB, port string) error {
 			}
 
 			m.Handled = true
-			db.Update(&m)
+			db.Save(&m)
 
 			w.WriteHeader(http.StatusOK)
 			str, _ := json.Marshal(m)
