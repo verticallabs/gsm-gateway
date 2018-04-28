@@ -20,7 +20,7 @@ type Message struct {
 	ID        string    `gorm:"primary_key,size:32" json:"id"`
 	Number    string    `gorm:"size:32" json:"number"`
 	Body      string    `gorm:"size:160" json:"body"`
-	Incoming  bool      `gorm:"index" json:"incoming"`
+	Incoming  bool      `gorm:"index" json:"-"`
 	Handled   bool      `gorm:"index" json:"-"`
 	Time      time.Time `json:"time"`
 	CreatedAt time.Time `json:"-"`
