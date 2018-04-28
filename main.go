@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -15,13 +16,13 @@ import (
 )
 
 type Message struct {
-	ID        string `gorm:"primary_key,size:32"`
-	Number    string `gorm:"size:32"`
-	Body      string `gorm:"size:160"`
-	Incoming  bool   `gorm:"index"`
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	ID        string    `gorm:"primary_key,size:32" json:"id"`
+	Number    string    `gorm:"size:32" json:"number"`
+	Body      string    `gorm:"size:160" json:"body"`
+	Incoming  bool      `gorm:"index" json:"incoming"`
+	Handled   bool      `gorm:"index" json:"-"`
+	Time      time.Time `json:"time"`
+	CreatedAt time.Time `json:"-"`
 }
 
 var modem *gogsmmodem.Modem
@@ -40,11 +41,30 @@ func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Messa
 		Number:   msg.Telephone,
 		Body:     msg.Body,
 		Incoming: true,
+		Time:     msg.Timestamp,
 	}
 	db.Create(&message)
+	deleteErr := modem.DeleteMessage(msg.Index)
+	if deleteErr != nil {
+		return deleteErr
+	}
 
-	//fmt.Printf("Message from %s: %s\n", msg.Telephone, msg.Body)
-	return modem.DeleteMessage(msg.Index)
+	str, marshalErr := json.Marshal(&message)
+	if marshalErr != nil {
+		return marshalErr
+	}
+
+	res, err := http.Post("http://localhost", "application/json", bytes.NewBuffer(str))
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode >= 200 && res.StatusCode <= 299 {
+		message.Handled = true
+		db.Update(&message)
+	}
+
+	return nil
 }
 
 func Run(db *gorm.DB, device string) error {
@@ -106,7 +126,7 @@ func Run(db *gorm.DB, device string) error {
 }
 
 func Serve(db *gorm.DB, port string) error {
-	http.HandleFunc("/messages", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc("/api/messages", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
 			decoder := json.NewDecoder(r.Body)
@@ -119,6 +139,7 @@ func Serve(db *gorm.DB, port string) error {
 			}
 			m.Incoming = false
 			m.ID = uuid.New().String()
+			m.Time = time.Now()
 
 			db.Create(&m)
 
@@ -127,6 +148,9 @@ func Serve(db *gorm.DB, port string) error {
 				http.Error(w, "500 Failed to send.", http.StatusInternalServerError)
 				return
 			}
+
+			m.Handled = true
+			db.Update(&m)
 
 			w.WriteHeader(http.StatusOK)
 			str, _ := json.Marshal(m)
@@ -137,7 +161,7 @@ func Serve(db *gorm.DB, port string) error {
 		}
 	})
 
-	return http.ListenAndServe(":" + port, nil)
+	return http.ListenAndServe(":"+port, nil)
 }
 
 func main() {
@@ -168,7 +192,7 @@ func main() {
 	}()
 
 	select {
-	case err := <- errorChannel:
+	case err := <-errorChannel:
 		panic(err)
 	}
 }
