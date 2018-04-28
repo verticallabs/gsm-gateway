@@ -126,7 +126,7 @@ func ListenOnHTTP(db *gorm.DB, modem *gogsmmodem.Modem, port string) chan error 
 			}
 			m.Incoming = false
 			m.ID = uuid.New().String()
-			m.Time = time.Now()
+			m.Time = time.Now().UTC()
 
 			db.Create(&m)
 
