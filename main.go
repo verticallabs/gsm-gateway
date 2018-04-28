@@ -48,7 +48,8 @@ func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Messa
 }
 
 func Run(db *gorm.DB) error {
-	port, portErr := serial.OpenPort(&serial.Config{Name: "/dev/ttyUSB1", Baud: 115200})
+	portName := os.Getenv("PORT")
+	port, portErr := serial.OpenPort(&serial.Config{Name: portName, Baud: 115200})
 	if portErr != nil {
 		panic(portErr)
 	}
