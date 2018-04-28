@@ -57,18 +57,18 @@ func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Messa
 	if err != nil {
 		return err
 	}
+	defer res.Body.Close()
 
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
 		message.Handled = true
-		db.Update(&message)
+		db.Save(&message)
 	}
 
 	return nil
 }
 
-func ListenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string) error {
+func ListenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string) chan error {
 	errorChannel := make(chan error, 1)
-	defer close(errorChannel)
 
 	go func() {
 		msgs, err := modem.ListMessages("ALL")
@@ -107,13 +107,12 @@ func ListenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string)
 		}
 	}()
 
-	select {
-	case err := <-errorChannel:
-		return err
-	}
+	return errorChannel
 }
 
-func ListenOnHTTP(db *gorm.DB, modem *gogsmmodem.Modem, port string) error {
+func ListenOnHTTP(db *gorm.DB, modem *gogsmmodem.Modem, port string) chan error {
+	errorChannel := make(chan error, 1)
+
 	http.HandleFunc("/api/messages", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -149,12 +148,13 @@ func ListenOnHTTP(db *gorm.DB, modem *gogsmmodem.Modem, port string) error {
 		}
 	})
 
-	return http.ListenAndServe(":"+port, nil)
+	for {
+		err := http.ListenAndServe(":"+port, nil)
+		errorChannel <- err
+	}
 }
 
 func main() {
-	errorChannel := make(chan error)
-
 	device := os.Getenv("DEVICE")
 	port := os.Getenv("PORT")
 	notificationUrl := os.Getenv("NOTIFICATION_URL")
@@ -182,17 +182,25 @@ func main() {
 	if modemErr != nil {
 		panic(modemErr)
 	}
+	defer modem.Close()
 
 	go func() {
-		errorChannel <- ListenOnModem(db, modem, notificationUrl)
+		modemError := ListenOnModem(db, modem, notificationUrl)
+		defer close(modemError)
+		select {
+		case err := <-modemError:
+			log.Println(err.Error())
+		}
 	}()
 
 	go func() {
-		errorChannel <- ListenOnHTTP(db, modem, port)
+		httpError := ListenOnHTTP(db, modem, port)
+		defer close(httpError)
+		select {
+		case err := <-httpError:
+			log.Println(err.Error())
+		}
 	}()
 
-	select {
-	case err := <-errorChannel:
-		log.Println(err.Error())
-	}
+	select {}
 }
