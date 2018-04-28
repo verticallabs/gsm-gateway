@@ -1,0 +1,27 @@
+hash: fd6dd1f10c39ba8b7e82c1ddbe74a77cf0e06b723f47131ada6bc6a5e9765118
+updated: 2018-04-27T18:22:44.934159-07:00
+imports:
+- name: github.com/barnybug/gogsmmodem
+  version: cf24ded1ea6544b9a434f4e9d13ae613a12a3aa1
+  repo: git@github.com:verticallabs/gogsmmodem
+  vcs: git
+- name: github.com/google/uuid
+  version: dec09d789f3dba190787f8b4454c7d3c936fed9e
+- name: github.com/jinzhu/gorm
+  version: 6842b49a1ad0feb6b93be830fe63a682cf853ada
+  subpackages:
+  - dialects/postgres
+- name: github.com/jinzhu/inflection
+  version: 04140366298a54a039076d798123ffa108fff46c
+- name: github.com/lib/pq
+  version: d34b9ff171c21ad295489235aec8b6626023cd04
+  subpackages:
+  - hstore
+  - oid
+- name: github.com/tarm/serial
+  version: eaafced92e9619f03c72527efeab21e326f3bc36
+- name: golang.org/x/sys
+  version: 79b0c6888797020a994db17c8510466c72fe75d9
+  subpackages:
+  - unix
+testImports: []

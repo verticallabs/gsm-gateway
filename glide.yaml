@@ -1,0 +1,6 @@
+package: github.com/verticallabs/gsm-gateway
+import: 
+- package: github.com/barnybug/gogsmmodem
+  version: feature/wait-for-sms-body
+  repo:    git@github.com:verticallabs/gogsmmodem
+  vcs:     git
