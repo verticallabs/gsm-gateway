@@ -54,6 +54,7 @@ func Run(db *gorm.DB) error {
 					msg, err := modem.GetMessage(p.Index)
 					if err != nil {
 						errorChannel <- err
+						continue
 					}
 
 					message := Message{
@@ -74,7 +75,10 @@ func Run(db *gorm.DB) error {
 					// }
 
 					fmt.Printf("Message from %s: %s\n", msg.Telephone, msg.Body)
-					modem.DeleteMessage(p.Index)
+					deleteErr := modem.DeleteMessage(p.Index)
+					if deleteErr != nil {
+						errorChannel <- deleteErr
+					}
 
 				}
 			}
