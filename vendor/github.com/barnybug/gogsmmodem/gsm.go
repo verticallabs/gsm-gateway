@@ -339,7 +339,7 @@ func (self *Modem) send(cmd string) (Packet, error) {
 			return response, errors.New("Response was ERROR")
 		}
 		return response, nil
-	case <-time.After(500 * time.Millisecond):
+	case <-time.After(5000 * time.Millisecond):
 		return nil, fmt.Errorf("Timed out waiting for response to %v", cmd)
 	}
 }

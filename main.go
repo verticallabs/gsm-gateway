@@ -58,7 +58,7 @@ func Run(db *gorm.DB) error {
 	defer close(errorChannel)
 
 	go func() {
-		msgs, err := modem.ListMessages("")
+		msgs, err := modem.ListMessages("ALL")
 		if err != nil {
 			errorChannel <- err
 			return
@@ -80,6 +80,8 @@ func Run(db *gorm.DB) error {
 						errorChannel <- err
 						return
 					} else {
+						fmt.Printf("p index %v", p.Index)
+						fmt.Printf("msg index %v", msg.Index)
 						err := createAndDelete(db, modem, msg)
 						if err != nil {
 							errorChannel <- err
