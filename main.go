@@ -1,11 +1,12 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"os"
 	"time"
 
-	//"github.com/google/uuid"
 	"github.com/barnybug/gogsmmodem"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
@@ -103,6 +104,34 @@ func Run(db *gorm.DB) error {
 	}
 }
 
+func Serve(db *gorm.DB) error {
+	http.HandleFunc("/messages", func(w http.ResponseWriter, r *http.Request) {
+		switch r.Method {
+		case "POST":
+			decoder := json.NewDecoder(r.Body)
+			var m Message
+			err := decoder.Decode(&m)
+			defer r.Body.Close()
+			if err != nil {
+				http.Error(w, "400 Bad request.", http.StatusBadRequest)
+				return
+			}
+			m.Incoming = false
+			m.ID = ""
+
+			db.Create(&m)
+			w.WriteHeader(http.StatusOK)
+			str, _ := json.Marshal(m)
+			w.Write([]byte(str))
+		default:
+			http.Error(w, "404 not found.", http.StatusNotFound)
+			return
+		}
+	})
+
+	return http.ListenAndServe(":80", nil)
+}
+
 func main() {
 	pgUser := os.Getenv("PGUSER")
 	pgPassword := os.Getenv("PGPASSWORD")
@@ -117,8 +146,17 @@ func main() {
 
 	db.AutoMigrate(&Message{})
 
-	runErr := Run(db)
-	if runErr != nil {
-		panic(runErr.Error())
-	}
+	go func() {
+		err := Run(db)
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
+
+	go func() {
+		err := Serve(db)
+		if err != nil {
+			panic(err.Error())
+		}
+	}()
 }
