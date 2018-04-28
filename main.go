@@ -53,7 +53,7 @@ func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Messa
 
 	if res.StatusCode >= 200 && res.StatusCode <= 299 {
 		message.Handled = true
-		db.Update(&message)
+		db.Save(&message)
 	}
 
 	return nil
