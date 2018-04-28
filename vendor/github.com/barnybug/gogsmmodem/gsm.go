@@ -299,7 +299,7 @@ func (self *Modem) listen() {
 			echo = strings.TrimRight(line, "\r\n")
 			self.port.Write([]byte(line))
 
-		case <-time.After(500 * time.Millisecond):
+		case <-time.After(5000 * time.Millisecond):
 			if !self.initComplete {
 				self.ready <- true
 			}

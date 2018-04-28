@@ -33,6 +33,19 @@ func Send(to, body string) error {
 	return modem.SendMessage(to, body)
 }
 
+func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Message) error {
+	message := Message{
+		ID:       uuid.New().String(),
+		Number:   msg.Telephone,
+		Body:     msg.Body,
+		Incoming: true,
+	}
+	db.Create(&message)
+
+	//fmt.Printf("Message from %s: %s\n", msg.Telephone, msg.Body)
+	return modem.DeleteMessage(msg.Index)
+}
+
 func Run(db *gorm.DB) error {
 	conf := serial.Config{Name: "/dev/serial0", Baud: 115200}
 	m, openErr := gogsmmodem.OpenSerial(&conf, true)
@@ -45,39 +58,32 @@ func Run(db *gorm.DB) error {
 	defer close(errorChannel)
 
 	go func() {
+		msgs, err := modem.ListMessages("")
+		if err != nil {
+			errorChannel <- err
+			return
+		}
+
+		for _, msg := range []gogsmmodem.Message(*msgs) {
+			err := createAndDelete(db, modem, &msg)
+			if err != nil {
+				errorChannel <- err
+			}
+		}
+
 		for {
 			for packet := range modem.OOB {
 				fmt.Printf("%#v\n", packet)
 				switch p := packet.(type) {
 				case gogsmmodem.MessageNotification:
-					fmt.Println("Message notification:", p)
-					msg, err := modem.GetMessage(p.Index)
-					if err != nil {
+					if msg, err := modem.GetMessage(p.Index); err != nil {
 						errorChannel <- err
-						continue
-					}
-
-					message := Message{
-						ID:       uuid.New().String(),
-						Number:   msg.Telephone,
-						Body:     msg.Body,
-						Incoming: true,
-					}
-					db.Create(&message)
-
-					// handleErr := gmg.onReceive(
-					// 	Contact(msg.Telephone),
-					// 	msg.Body,
-					// 	msg.Timestamp,
-					// )
-					// if handleErr != nil {
-					// 	errorChannel <- handleErr
-					// }
-
-					fmt.Printf("Message from %s: %s\n", msg.Telephone, msg.Body)
-					deleteErr := modem.DeleteMessage(p.Index)
-					if deleteErr != nil {
-						errorChannel <- deleteErr
+						return
+					} else {
+						err := createAndDelete(db, modem, msg)
+						if err != nil {
+							errorChannel <- err
+						}
 					}
 
 				}
