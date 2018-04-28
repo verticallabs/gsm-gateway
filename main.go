@@ -27,13 +27,20 @@ type Message struct {
 	UpdatedAt time.Time `json:"-"`
 }
 
+func convertTime(local time.Time) time.Time {
+	location := time.Now().Location()
+	str := local.Format("06/01/02,15:04:05")
+	t, _ := time.ParseInLocation("06/01/02,15:04:05", str, location)
+	return t
+}
+
 func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Message, notificationUrl string) error {
 	message := Message{
 		ID:       uuid.New().String(),
 		Number:   msg.Telephone,
 		Body:     msg.Body,
 		Incoming: true,
-		Time:     msg.Timestamp,
+		Time:     convertTime(msg.Timestamp),
 	}
 	db.Create(&message)
 	deleteErr := modem.DeleteMessage(msg.Index)
