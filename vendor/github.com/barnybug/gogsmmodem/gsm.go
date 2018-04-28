@@ -10,8 +10,6 @@ import (
 	"regexp"
 	"strings"
 	"time"
-
-	"github.com/tarm/serial"
 )
 
 const BODY_PROMPT = "> "
@@ -20,49 +18,51 @@ const ESC = "\x1b"
 
 type Modem struct {
 	OOB          chan Packet
-	Debug        bool
 	port         io.ReadWriteCloser
 	rx           chan Packet
 	tx           chan string
 	ready        chan bool
 	initComplete bool
+	config       *ModemConfig
 }
 
-type PortOpener func(config *serial.Config) (io.ReadWriteCloser, error)
-
-func OpenSerial(config *serial.Config, debug bool) (*Modem, error) {
-	return Open(config, debug, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return serial.OpenPort(config)
-	})
+type ModemConfig struct {
+	startupTimeout time.Duration
+	readTimeout    time.Duration
+	debug          bool
 }
 
-func Open(config *serial.Config, debug bool, po PortOpener) (*Modem, error) {
-	port, err := po(config)
-	if debug {
-		port = LogReadWriteCloser{port}
+func NewSerialModemConfig() *ModemConfig {
+	return &ModemConfig{
+		startupTimeout: 500 * time.Millisecond,
+		readTimeout:    4 * time.Second,
+		debug:          false,
 	}
-	if err != nil {
-		return nil, err
+}
+
+func NewModem(port io.ReadWriteCloser, config *ModemConfig) (*Modem, error) {
+	if config.debug {
+		port = LogReadWriteCloser{port}
 	}
 
 	oob := make(chan Packet, 16)
 	rx := make(chan Packet)
 	tx := make(chan string)
 	ready := make(chan bool)
+
 	modem := &Modem{
-		OOB:   oob,
-		Debug: debug,
-		port:  port,
-		rx:    rx,
-		tx:    tx,
-		ready: ready,
+		OOB:    oob,
+		config: config,
+		port:   port,
+		rx:     rx,
+		tx:     tx,
+		ready:  ready,
 	}
 
 	// run send/receive goroutine
 	go modem.listen()
 
-	err = modem.init()
-	if err != nil {
+	if err := modem.init(); err != nil {
 		return nil, err
 	}
 	return modem, nil
@@ -299,7 +299,7 @@ func (self *Modem) listen() {
 			echo = strings.TrimRight(line, "\r\n")
 			self.port.Write([]byte(line))
 
-		case <-time.After(5000 * time.Millisecond):
+		case <-time.After(self.config.startupTimeout):
 			if !self.initComplete {
 				self.ready <- true
 			}
@@ -339,7 +339,7 @@ func (self *Modem) send(cmd string) (Packet, error) {
 			return response, errors.New("Response was ERROR")
 		}
 		return response, nil
-	case <-time.After(5000 * time.Millisecond):
+	case <-time.After(self.config.readTimeout):
 		return nil, fmt.Errorf("Timed out waiting for response to %v", cmd)
 	}
 }

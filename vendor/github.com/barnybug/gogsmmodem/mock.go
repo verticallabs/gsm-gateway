@@ -19,13 +19,15 @@ type MockSerialPort struct {
 	replay        []string
 	enqueuedReads chan string
 	position      int
+	readTimeout   time.Duration
 }
 
-func NewMockSerialPort(replay []string) *MockSerialPort {
+func NewMockSerialPort(replay []string, readTimeout time.Duration) *MockSerialPort {
 	self := &MockSerialPort{
 		replay:        replay,
 		enqueuedReads: make(chan string, 16),
 		position:      0,
+		readTimeout:   readTimeout,
 	}
 	self.EnqueueReads()
 	return self
@@ -65,7 +67,7 @@ func (self *MockSerialPort) EnqueueReads() {
 func (self *MockSerialPort) Read(b []byte) (int, error) {
 	var result string
 	select {
-	case <-time.After(5 * time.Second):
+	case <-time.After(self.readTimeout):
 		fmt.Printf("Read: timeout waiting for read\n")
 		panic("fail")
 	case r, ok := <-self.enqueuedReads:

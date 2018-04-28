@@ -2,13 +2,9 @@ package gogsmmodem
 
 import (
 	"fmt"
-	"io"
-	"log"
 	"reflect"
 	"testing"
 	"time"
-
-	"github.com/tarm/serial"
 )
 
 func appendLists(ls ...[]string) []string {
@@ -23,6 +19,21 @@ func appendLists(ls ...[]string) []string {
 		off = off[len(l):]
 	}
 	return ret
+}
+
+func newModemWithMock(replay []string, t *testing.T) (*Modem, *MockSerialPort) {
+	mock := NewMockSerialPort(replay, 200*time.Millisecond)
+	config := ModemConfig{
+		startupTimeout: 50 * time.Millisecond,
+		readTimeout:    100 * time.Millisecond,
+		debug:          true,
+	}
+	modem, err := NewModem(mock, &config)
+	if err != nil {
+		t.Error("error creating modem:", err)
+	}
+
+	return modem, mock
 }
 
 var initReplay = []string{
@@ -43,20 +54,12 @@ var initReplay = []string{
 
 func TestNormalInit(t *testing.T) {
 	replay := appendLists(initReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
-
+	modem, mock := newModemWithMock(replay, t)
 	modem.Close()
-	//fmt.Printf("%v %v\n", mock.position, len(mock.replay))
+
 	if !mock.Done() {
 		t.Errorf("Incomplete replay: remaining %v", mock.replay[mock.position])
 	}
-
 }
 
 var hangingPromptReplay = []string{
@@ -67,20 +70,12 @@ var hangingPromptReplay = []string{
 
 func TestHangingPromptInit(t *testing.T) {
 	replay := appendLists(hangingPromptReplay, initReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
-
+	modem, mock := newModemWithMock(replay, t)
 	modem.Close()
-	//fmt.Printf("%v %v\n", mock.position, len(mock.replay))
+
 	if !mock.Done() {
 		t.Errorf("Incomplete replay: remaining %v", mock.replay[mock.position])
 	}
-
 }
 
 func assertOOBCommands(t *testing.T, modem *Modem, commands []Packet) {
@@ -122,21 +117,13 @@ var oobCommands = []Packet{
 
 func TestOOB(t *testing.T) {
 	replay := appendLists(oobReplay, initReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
-
+	modem, mock := newModemWithMock(replay, t)
 	modem.Close()
+
 	assertOOBCommands(t, modem, oobCommands)
 	if !mock.Done() {
 		t.Errorf("Incomplete replay: remaining %v", mock.replay[mock.position])
 	}
-
 }
 
 var receivedReplay = []string{
@@ -149,21 +136,13 @@ var receivedCommands = []Packet{
 
 func TestIncoming(t *testing.T) {
 	replay := appendLists(initReplay, receivedReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
-
+	modem, mock := newModemWithMock(replay, t)
 	modem.Close()
+
 	assertOOBCommands(t, modem, receivedCommands)
 	if !mock.Done() {
 		t.Errorf("Incomplete replay: remaining %v", mock.replay[mock.position])
 	}
-
 }
 
 var messageReplay = []string{
@@ -173,14 +152,7 @@ var messageReplay = []string{
 
 func TestGetMessage(t *testing.T) {
 	replay := appendLists(initReplay, messageReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
+	modem, mock := newModemWithMock(replay, t)
 
 	msg, _ := modem.GetMessage(1)
 	expected := Message{0, "REC UNREAD", "+441234567890", time.Date(2014, 2, 1, 15, 7, 43, 0, time.UTC), "Hi", false}
@@ -192,7 +164,6 @@ func TestGetMessage(t *testing.T) {
 	if !mock.Done() {
 		t.Errorf("Incomplete replay: remaining %v", mock.replay[mock.position])
 	}
-
 }
 
 var missingMessageReplay = []string{
@@ -202,16 +173,9 @@ var missingMessageReplay = []string{
 
 func TestGetMissingMessage(t *testing.T) {
 	replay := appendLists(initReplay, missingMessageReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
+	modem, mock := newModemWithMock(replay, t)
 
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
-
-	_, err = modem.GetMessage(1)
+	_, err := modem.GetMessage(1)
 	if fmt.Sprint(err) != "Message not found" {
 		t.Errorf("Expected error: %#v, got %#v", err, err)
 	}
@@ -232,16 +196,9 @@ var sendMessageReplay = []string{
 
 func TestSendMessage(t *testing.T) {
 	replay := appendLists(initReplay, sendMessageReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
+	modem, mock := newModemWithMock(replay, t)
 
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
-
-	err = modem.SendMessage("441234567890", "Body@")
+	err := modem.SendMessage("441234567890", "Body@")
 	if err != nil {
 		t.Error("Expected: no error, got:", err)
 	}
@@ -261,14 +218,7 @@ var listMessagesReplay = []string{
 
 func TestListMessages(t *testing.T) {
 	replay := appendLists(initReplay, listMessagesReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
+	modem, mock := newModemWithMock(replay, t)
 
 	msg, _ := modem.ListMessages("ALL")
 	expected := MessageList{
@@ -299,17 +249,12 @@ var listMessagesEmptyReplay = []string{
 
 func TestListMessagesEmpty(t *testing.T) {
 	replay := appendLists(initReplay, listMessagesEmptyReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
+	modem, mock := newModemWithMock(replay, t)
 
 	msg, err := modem.ListMessages("ALL")
-	log.Println("ERROR", err)
+	if err != nil {
+		t.Error(err)
+	}
 	expected := MessageList{}
 	if len(*msg) != len(expected) {
 		t.Errorf("Expected: %#v, got %#v", expected, msg)
@@ -319,7 +264,6 @@ func TestListMessagesEmpty(t *testing.T) {
 	if !mock.Done() {
 		t.Errorf("Incomplete replay: remaining %v", mock.replay[mock.position])
 	}
-
 }
 
 var storageAreasReplay = []string{
@@ -330,14 +274,7 @@ var storageAreasReplay = []string{
 func TestSupportedStorageAreas(t *testing.T) {
 
 	replay := appendLists(initReplay, storageAreasReplay)
-	mock := NewMockSerialPort(replay)
-	modem, err := Open(&serial.Config{}, false, func(config *serial.Config) (io.ReadWriteCloser, error) {
-		return mock, nil
-	})
-
-	if err != nil {
-		t.Error("Expected: no error, got:", err)
-	}
+	modem, mock := newModemWithMock(replay, t)
 
 	msg, _ := modem.SupportedStorageAreas()
 	expected := StorageAreas{

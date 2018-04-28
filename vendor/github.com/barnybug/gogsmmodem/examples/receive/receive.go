@@ -10,10 +10,14 @@ import (
 )
 
 func main() {
-	conf := serial.Config{Name: "/dev/ttyUSB1", Baud: 115200}
-	modem, err := gogsmmodem.OpenSerial(&conf, true)
-	if err != nil {
-		panic(err)
+	port, portErr := serial.OpenPort(&serial.Config{"/dev/ttyUSB1", 115200})
+	if portErr != nil {
+		panic(portErr)
+	}
+
+	modem, modemErr := gogsmmodem.NewModem(port, gogsmmodem.NewSerialModemConfig())
+	if modemErr != nil {
+		panic(modemErr)
 	}
 
 	for packet := range modem.OOB {

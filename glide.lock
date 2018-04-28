@@ -1,8 +1,8 @@
 hash: fd6dd1f10c39ba8b7e82c1ddbe74a77cf0e06b723f47131ada6bc6a5e9765118
-updated: 2018-04-27T18:22:44.934159-07:00
+updated: 2018-04-28T10:38:34.800979-07:00
 imports:
 - name: github.com/barnybug/gogsmmodem
-  version: cf24ded1ea6544b9a434f4e9d13ae613a12a3aa1
+  version: 6355e61e547aef52467034b5468bd98b6ac65b0c
   repo: git@github.com:verticallabs/gogsmmodem
   vcs: git
 - name: github.com/google/uuid

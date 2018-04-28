@@ -47,12 +47,15 @@ func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Messa
 }
 
 func Run(db *gorm.DB) error {
-	conf := serial.Config{Name: "/dev/serial0", Baud: 115200}
-	m, openErr := gogsmmodem.OpenSerial(&conf, true)
-	if openErr != nil {
-		return openErr
+	port, portErr := serial.OpenPort(&serial.Config{"/dev/ttyUSB1", 115200})
+	if portErr != nil {
+		panic(portErr)
 	}
-	modem = m
+
+	modem, modemErr := gogsmmodem.NewModem(port, gogsmmodem.NewSerialModemConfig())
+	if modemErr != nil {
+		panic(modemErr)
+	}
 
 	errorChannel := make(chan error, 1)
 	defer close(errorChannel)
