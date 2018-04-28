@@ -47,17 +47,17 @@ func createAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Messa
 	return modem.DeleteMessage(msg.Index)
 }
 
-func Run(db *gorm.DB) error {
-	portName := os.Getenv("PORT")
-	port, portErr := serial.OpenPort(&serial.Config{Name: portName, Baud: 115200})
+func Run(db *gorm.DB, device string) error {
+	port, portErr := serial.OpenPort(&serial.Config{Name: device, Baud: 115200})
 	if portErr != nil {
 		panic(portErr)
 	}
 
-	modem, modemErr := gogsmmodem.NewModem(port, gogsmmodem.NewSerialModemConfig())
+	m, modemErr := gogsmmodem.NewModem(port, gogsmmodem.NewSerialModemConfig())
 	if modemErr != nil {
 		panic(modemErr)
 	}
+	modem = m
 
 	errorChannel := make(chan error, 1)
 	defer close(errorChannel)
@@ -105,7 +105,7 @@ func Run(db *gorm.DB) error {
 	}
 }
 
-func Serve(db *gorm.DB) error {
+func Serve(db *gorm.DB, port string) error {
 	http.HandleFunc("/messages", func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -118,9 +118,16 @@ func Serve(db *gorm.DB) error {
 				return
 			}
 			m.Incoming = false
-			m.ID = ""
+			m.ID = uuid.New().String()
 
 			db.Create(&m)
+
+			err = modem.SendMessage(m.Number, m.Body)
+			if err != nil {
+				http.Error(w, "500 Failed to send.", http.StatusInternalServerError)
+				return
+			}
+
 			w.WriteHeader(http.StatusOK)
 			str, _ := json.Marshal(m)
 			w.Write([]byte(str))
@@ -130,14 +137,19 @@ func Serve(db *gorm.DB) error {
 		}
 	})
 
-	return http.ListenAndServe(":80", nil)
+	return http.ListenAndServe(":" + port, nil)
 }
 
 func main() {
+	errorChannel := make(chan error)
+
+	device := os.Getenv("DEVICE")
+	port := os.Getenv("PORT")
 	pgUser := os.Getenv("PGUSER")
 	pgPassword := os.Getenv("PGPASSWORD")
 	pgDatabase := os.Getenv("PGDATABASE")
 	pgConnectionString := fmt.Sprintf("postgresql://%v:%v@127.0.0.1/%v?sslmode=disable", pgUser, pgPassword, pgDatabase)
+
 	fmt.Println(pgConnectionString)
 	db, dbErr := gorm.Open("postgres", pgConnectionString)
 	if dbErr != nil {
@@ -148,16 +160,15 @@ func main() {
 	db.AutoMigrate(&Message{})
 
 	go func() {
-		err := Run(db)
-		if err != nil {
-			panic(err.Error())
-		}
+		errorChannel <- Run(db, device)
 	}()
 
 	go func() {
-		err := Serve(db)
-		if err != nil {
-			panic(err.Error())
-		}
+		errorChannel <- Serve(db, port)
 	}()
+
+	select {
+	case err := <- errorChannel:
+		panic(err)
+	}
 }
