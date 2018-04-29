@@ -5,4 +5,20 @@ services:
         ports:
         - "5432:5432"
         environment:
-        - POSTGRES_PASSWORD=postgres
+        - POSTGRES_PASSWORD=${PGPASSWORD}
+        networks:
+        - internal
+    gateway:
+        image: localhost:5000/gsm-gateway:0.0.5
+        env_file: .env
+        ports:
+        - "80:80"
+        devices:
+        - "/dev/serial0:/dev/serial0"
+        depends_on:
+        - db
+        networks:
+        - internal
+networks:
+    internal:
+        internal: true
