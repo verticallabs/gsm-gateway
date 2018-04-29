@@ -1,6 +1,6 @@
 include .env
 export $(shell sed 's/=.*//' .env | grep -v '\#')
-export VERSION=0.0.5
+export VERSION=0.1.0
 
 db-run:
 	docker-compose up -d db

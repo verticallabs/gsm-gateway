@@ -9,7 +9,7 @@ services:
         networks:
         - internal
     gateway:
-        image: localhost:5000/gsm-gateway:0.0.5
+        image: localhost:5000/gsm-gateway:0.1.0
         env_file: .env
         ports:
         - "80:80"
@@ -24,7 +24,7 @@ services:
         networks:
         - internal
         ports:
-        - "80:80"
+        - "80:80"    
 networks:
     internal:
         internal: true

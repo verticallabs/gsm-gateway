@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"time"
 
 	"github.com/barnybug/gogsmmodem"
 	"github.com/jinzhu/gorm"
@@ -23,7 +24,10 @@ func main() {
 
 	pgConnectionString := fmt.Sprintf("postgresql://%v:%v@%v/%v?sslmode=disable", pgUser, pgPassword, pgHost, pgDatabase)
 
+	log.Printf("Initializing gateway with time zone %v", time.Now().Location().String())
+
 	// set up db
+	log.Printf("Connecting to db at %v", pgConnectionString)
 	db, dbErr := gorm.Open("postgres", pgConnectionString)
 	if dbErr != nil {
 		panic(dbErr.Error())
