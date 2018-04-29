@@ -19,6 +19,12 @@ services:
         - db
         networks:
         - internal
+    app:
+        image: localhost:5000/verticallabs/canary:0.1.0
+        networks:
+        - internal
+        ports:
+        - "80:80"
 networks:
     internal:
         internal: true
