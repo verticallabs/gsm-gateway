@@ -20,7 +20,9 @@ services:
         networks:
         - internal
     app:
-        image: localhost:5000/verticallabs/canary:0.1.0
+        image: localhost:5000/verticallabs/canary:0.2.0
+        environment:
+        - "PORT=80"
         networks:
         - internal
         ports:
