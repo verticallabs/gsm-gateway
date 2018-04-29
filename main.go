@@ -41,10 +41,10 @@ func main() {
 	}
 	defer modem.Close()
 
-	modemError := ListenOnModem(db, modem, notificationUrl)
+	modemError := listenOnModem(db, modem, notificationUrl)
 	defer close(modemError)
 
-	httpError := ListenOnHTTP(db, modem, port)
+	httpError := listenOnHTTP(db, modem, port)
 	defer close(httpError)
 
 	for {

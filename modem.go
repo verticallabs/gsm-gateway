@@ -49,7 +49,7 @@ func saveAndDelete(db *gorm.DB, modem *gogsmmodem.Modem, msg *gogsmmodem.Message
 	return nil
 }
 
-func ListenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string) chan error {
+func listenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string) chan error {
 	errorChannel := make(chan error, 1)
 
 	go func() {

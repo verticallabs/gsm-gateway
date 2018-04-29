@@ -10,7 +10,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-func CreateIncomingMessageHandler(db *gorm.DB, modem *gogsmmodem.Modem) http.HandlerFunc {
+func createIncomingMessageHandler(db *gorm.DB, modem *gogsmmodem.Modem) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		switch r.Method {
 		case "POST":
@@ -52,10 +52,10 @@ func CreateIncomingMessageHandler(db *gorm.DB, modem *gogsmmodem.Modem) http.Han
 	}
 }
 
-func ListenOnHTTP(db *gorm.DB, modem *gogsmmodem.Modem, port string) chan error {
+func listenOnHTTP(db *gorm.DB, modem *gogsmmodem.Modem, port string) chan error {
 	errorChannel := make(chan error, 1)
 
-	http.HandleFunc("/api/messages", CreateIncomingMessageHandler(db, modem))
+	http.HandleFunc("/api/messages", createIncomingMessageHandler(db, modem))
 
 	for {
 		err := http.ListenAndServe(":"+port, nil)

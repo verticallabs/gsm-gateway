@@ -14,5 +14,7 @@ db:
 		-e "PGUSER=${PGUSER}" \
 		-e "PGPASSWORD=${PGPASSWORD}" \
 		db psql
-dev:
-	go run main.go
+build:
+	go build
+dev: build
+	./gsm-gateway
