@@ -1,8 +1,8 @@
 hash: fd6dd1f10c39ba8b7e82c1ddbe74a77cf0e06b723f47131ada6bc6a5e9765118
-updated: 2018-04-28T10:42:11.718679-07:00
+updated: 2018-04-28T17:59:56.411506-07:00
 imports:
 - name: github.com/barnybug/gogsmmodem
-  version: f7594827e93108395547e8d117d70d2d7cf1e277
+  version: 470f3be4815545350816b3fda785f176ea22e1d8
   repo: git@github.com:verticallabs/gogsmmodem
   vcs: git
 - name: github.com/google/uuid
@@ -24,4 +24,21 @@ imports:
   version: 79b0c6888797020a994db17c8510466c72fe75d9
   subpackages:
   - unix
-testImports: []
+testImports:
+- name: github.com/gopherjs/gopherjs
+  version: 1daac00a5961469351b87e7ac223239c37938d2a
+  subpackages:
+  - js
+- name: github.com/jtolds/gls
+  version: 77f18212c9c7edc9bd6a33d383a7b545ce62f064
+- name: github.com/smartystreets/assertions
+  version: 7678a5452ebea5b7090a6b163f844c133f523da2
+  subpackages:
+  - internal/go-render/render
+  - internal/oglematchers
+- name: github.com/smartystreets/goconvey
+  version: 9e8dc3f972df6c8fcc0375ef492c24d0bb204857
+  subpackages:
+  - convey
+  - convey/gotest
+  - convey/reporting

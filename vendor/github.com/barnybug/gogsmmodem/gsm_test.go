@@ -155,7 +155,7 @@ func TestGetMessage(t *testing.T) {
 	modem, mock := newModemWithMock(replay, t)
 
 	msg, _ := modem.GetMessage(1)
-	expected := Message{0, "REC UNREAD", "+441234567890", time.Date(2014, 2, 1, 15, 7, 43, 0, time.UTC), "Hi", false}
+	expected := Message{1, "REC UNREAD", "+441234567890", time.Date(2014, 2, 1, 15, 7, 43, 0, time.UTC), "Hi", false}
 	if *msg != expected {
 		t.Errorf("Expected: %#v, got %#v", expected, msg)
 	}

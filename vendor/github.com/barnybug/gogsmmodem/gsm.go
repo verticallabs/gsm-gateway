@@ -85,6 +85,7 @@ func (self *Modem) GetMessage(n int) (*Message, error) {
 		return nil, err
 	}
 	if msg, ok := packet.(Message); ok {
+		msg.Index = n
 		return &msg, nil
 	}
 	return nil, errors.New("Message not found")
@@ -202,8 +203,12 @@ func parsePacket(status string, header string, body string) Packet {
 	case "+CSCA":
 		return SMSCAddress{args}
 	case "+CMGR":
-		return Message{Status: args[0].(string), Telephone: args[1].(string),
-			Timestamp: parseTime(args[3].(string)), Body: body}
+		return Message{
+			Status:    args[0].(string),
+			Telephone: args[1].(string),
+			Timestamp: parseTime(args[3].(string)),
+			Body:      body,
+		}
 	case "+CMGL":
 		return Message{
 			Index:     args[0].(int),
