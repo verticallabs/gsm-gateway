@@ -9,8 +9,11 @@ services:
         networks:
         - internal
     gateway:
-        image: localhost:5000/gsm-gateway:0.1.0
+        image: localhost:5000/gsm-gateway:0.3.0
         env_file: .env
+        volumes:
+        - "/etc/timezone:/etc/timezone:ro"
+        - "/etc/localtime:/etc/localtime:ro"        
         ports:
         - "80:80"
         devices:
