@@ -1,6 +1,6 @@
 include .env
 export $(shell sed 's/=.*//' .env | grep -v '\#')
-export VERSION=0.0.1
+export VERSION=0.0.5
 
 db-run:
 	docker-compose up -d db
@@ -18,3 +18,10 @@ build:
 	go build
 dev: build
 	./gsm-gateway
+
+docker-build:
+	docker build -t pi:5000/gsm-gateway:${VERSION} .
+docker-push: docker-build
+	docker push pi:5000/gsm-gateway:${VERSION}
+test:
+	go test -v .

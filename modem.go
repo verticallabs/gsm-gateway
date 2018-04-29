@@ -3,7 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"time"
 
@@ -69,7 +69,6 @@ func listenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string)
 
 		for {
 			for packet := range modem.OOB {
-				fmt.Printf("%#v\n", packet)
 				switch p := packet.(type) {
 				case gogsmmodem.MessageNotification:
 					msg, err := modem.GetMessage(p.Index)
@@ -77,6 +76,7 @@ func listenOnModem(db *gorm.DB, modem *gogsmmodem.Modem, notificationUrl string)
 						errorChannel <- err
 						continue
 					}
+					log.Printf("Received message %v: %v\n", msg.Telephone, msg.Body)
 
 					saveErr := saveAndDelete(db, modem, msg, notificationUrl)
 					if saveErr != nil {

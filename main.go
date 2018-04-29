@@ -16,11 +16,12 @@ func main() {
 	port := os.Getenv("PORT")
 	notificationUrl := os.Getenv("NOTIFICATION_URL")
 
+	pgHost := os.Getenv("PGHOST")
 	pgUser := os.Getenv("PGUSER")
 	pgPassword := os.Getenv("PGPASSWORD")
 	pgDatabase := os.Getenv("PGDATABASE")
 
-	pgConnectionString := fmt.Sprintf("postgresql://%v:%v@127.0.0.1/%v?sslmode=disable", pgUser, pgPassword, pgDatabase)
+	pgConnectionString := fmt.Sprintf("postgresql://%v:%v@%v/%v?sslmode=disable", pgUser, pgPassword, pgHost, pgDatabase)
 
 	// set up db
 	db, dbErr := gorm.Open("postgres", pgConnectionString)

@@ -2,6 +2,7 @@ package main
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"time"
 
@@ -31,6 +32,7 @@ func createIncomingMessageHandler(db *gorm.DB, modem *gogsmmodem.Modem) http.Han
 			db.Create(&m)
 
 			// send
+			log.Printf("Sending message %v: %v\n", m.Number, m.Body)
 			err = modem.SendMessage(m.Number, m.Body)
 			if err != nil {
 				http.Error(w, "500 Failed to send.", http.StatusInternalServerError)
